@@ -50,7 +50,7 @@ class Network(object):
                 if kwargs.get('trainable', True):
                     self.variables[name] = variable
                     if 'variables' in self.summary_labels:
-                        summary = tf.summary.histogram(name=name, values=variable)
+                        summary = tf.contrib.summary.histogram(name=name, tensor=variable)
                         self.summaries.append(summary)
             return variable
 

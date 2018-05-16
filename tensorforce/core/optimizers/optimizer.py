@@ -132,12 +132,12 @@ class Optimizer(object):
         #                 if any(k in self.summary_labels for k in ('gradients', 'gradients_scalar')):
         #                     axes = list(range(len(grad.shape)))
         #                     mean, var = tf.nn.moments(grad, axes)
-        #                     summary = tf.summary.scalar(name='gradients/' + var.name + "/mean", tensor=mean)
+        #                     summary = tf.contrib.summary.scalar(name='gradients/' + var.name + "/mean", tensor=mean)
         #                     self.summaries.append(summary)
-        #                     summary = tf.summary.scalar(name='gradients/' + var.name + "/variance", tensor=var)
+        #                     summary = tf.contrib.summary.scalar(name='gradients/' + var.name + "/variance", tensor=var)
         #                     self.summaries.append(summary)
         #                 if any(k in self.summary_labels for k in ('gradients', 'gradients_histogram')):
-        #                     summary = tf.summary.histogram(name='gradients/' + var.name, values=grad)
+        #                     summary = tf.contrib.summary.histogram(name='gradients/' + var.name, tensor=grad)
         #                     self.summaries.append(summary)
 
         deltas = self.step(time=time, variables=variables, **kwargs)

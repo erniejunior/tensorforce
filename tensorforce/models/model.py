@@ -22,6 +22,7 @@ import os
 
 import numpy as np
 import tensorflow as tf
+import tensorflow.contrib.summary
 from tensorflow.python.debug import DumpingDebugWrapperSession
 
 from tensorforce import TensorForceError, util
@@ -120,7 +121,7 @@ class Model(object):
             self.summarizer_spec = None
         else:
             self.summarizer_spec = summarizer
-        self.summarizer = None  # The tf.summary.FileWriter object
+        self.summarizer = None  # The tf.contrib.summary.FileWriter object
         self.summarizer_hook = None  # The summarizer hook to use in the model's session.
 
         # TensorFlow summaries
@@ -204,7 +205,6 @@ class Model(object):
         self.server = None
 
         self.summary_writer = None
-        self.summary_writer_hook = None
         self.saver = None
         self.saver_directory = None
         self.scaffold = None
@@ -233,9 +233,20 @@ class Model(object):
         if self.execution_type == "distributed" and not self.server and self.is_local_model:
             self.start_server()
 
+        # TensorFlow summary writer object
+
+        if self.summarizer_spec is not None and 'directory' in self.summarizer_spec:
+            self.summary_writer = tf.contrib.summary.create_file_writer(
+                logdir=self.summarizer_spec['directory'],
+                max_queue=10,
+                flush_millis=120 * 1000,
+                filename_suffix=None,
+            )
+            self.summary_writer.set_as_default()
         # build the graph
-        with tf.device(device_name_or_function=self.device):
-            with tf.variable_scope(name_or_scope=self.scope, reuse=False):
+             #tf.contrib.summary.always_record_summaries(), \
+        with tf.device(device_name_or_function=self.device), \
+             tf.variable_scope(name_or_scope=self.scope, reuse=False):
 
                 # Variables and summaries
                 self.variables = dict()
@@ -277,14 +288,14 @@ class Model(object):
                 # Add all summaries specified in summary_labels
                 if any(k in self.summary_labels for k in ['inputs', 'states']):
                     for name, state in states.items():
-                        summary = tf.summary.histogram(name=(self.scope + '/inputs/states/' + name), values=state)
+                        summary = tf.contrib.summary.histogram(name=(self.scope + '/inputs/states/' + name), tensor=state)
                         self.summaries.append(summary)
                 if any(k in self.summary_labels for k in ['inputs', 'actions']):
                     for name, action in actions.items():
-                        summary = tf.summary.histogram(name=(self.scope + '/inputs/actions/' + name), values=action)
+                        summary = tf.contrib.summary.histogram(name=(self.scope + '/inputs/actions/' + name), tensor=action)
                         self.summaries.append(summary)
                 if any(k in self.summary_labels for k in ['inputs', 'rewards']):
-                    summary = tf.summary.histogram(name=(self.scope + '/inputs/rewards'), values=reward)
+                    summary = tf.contrib.summary.histogram(name=(self.scope + '/inputs/rewards'), tensor=reward)
                     self.summaries.append(summary)
 
         # If we are a global model -> return here.
@@ -504,7 +515,7 @@ class Model(object):
                     if kwargs.get('trainable', True):
                         self.variables[name] = variable
                         if 'variables' in self.summary_labels:
-                            summary = tf.summary.histogram(name=name, values=variable)
+                            summary = tf.contrib.summary.histogram(name=name, tensor=variable)
                             self.summaries.append(summary)
                 return variable
 

@@ -53,7 +53,7 @@ class Layer(object):
                 if kwargs.get('trainable', True):
                     self.variables[name] = variable
                     if 'variables' in self.summary_labels:
-                        summary = tf.summary.histogram(name=name, values=variable)
+                        summary = tf.contrib.summary.histogram(name=name, tensor=variable)
                         self.summaries.append(summary)
             return variable
 
@@ -275,7 +275,7 @@ class Nonlinearity(Layer):
             if 'relu' in self.summary_labels:
                 non_zero = tf.cast(x=tf.count_nonzero(input_tensor=x), dtype=tf.float32)
                 size = tf.cast(x=tf.reduce_prod(input_tensor=tf.shape(input=x)), dtype=tf.float32)
-                summary = tf.summary.scalar(name='relu', tensor=(non_zero / size))
+                summary = tf.contrib.summary.scalar(name='relu', tensor=(non_zero / size))
                 self.summaries.append(summary)
 
         elif self.name == 'selu':
@@ -314,7 +314,7 @@ class Nonlinearity(Layer):
             raise TensorForceError('Invalid non-linearity: {}'.format(self.name))
 
         if 'beta' in self.summary_labels:
-            summary = tf.summary.scalar(name='beta', tensor=self.beta)
+            summary = tf.contrib.summary.scalar(name='beta', tensor=self.beta)
             self.summaries.append(summary)            
 
         return x
@@ -700,7 +700,7 @@ class Dense(Layer):
             xl2 = xl1
 
         if 'activations' in self.summary_labels:
-            summary = tf.summary.histogram(name='activations', values=xl2)
+            summary = tf.contrib.summary.histogram(name='activations', tensor=xl2)
             self.summaries.append(summary)
 
         return xl2
@@ -807,11 +807,11 @@ class Dueling(Layer):
             self.named_tensors[self.output[1]] = advantage - mean_advantage
             self.named_tensors[self.output[2]] = mean_advantage
             if 'activations' in self.summary_labels:                  
-                summary = tf.summary.histogram(name=self.output[0], values=expectation)
+                summary = tf.contrib.summary.histogram(name=self.output[0], tensor=expectation)
                 self.summaries.append(summary)
-                summary = tf.summary.histogram(name=self.output[1], values=advantage - mean_advantage)
+                summary = tf.contrib.summary.histogram(name=self.output[1], tensor=advantage - mean_advantage)
                 self.summaries.append(summary)                
-                summary = tf.summary.histogram(name=self.output[2], values=mean_advantage)
+                summary = tf.contrib.summary.histogram(name=self.output[2], tensor=mean_advantage)
                 self.summaries.append(summary)
 
         x = expectation + advantage - mean_advantage
@@ -819,7 +819,7 @@ class Dueling(Layer):
         x = self.nonlinearity.apply(x=x, update=update)
 
         if 'activations' in self.summary_labels:            
-            summary = tf.summary.histogram(name='activations', values=x)
+            summary = tf.contrib.summary.histogram(name='activations', tensor=x)
             self.summaries.append(summary)
 
         return x
@@ -921,7 +921,7 @@ class Conv1d(Layer):
         x = self.nonlinearity.apply(x=x, update=update)
 
         if 'activations' in self.summary_labels:
-            summary = tf.summary.histogram(name='activations', values=x)
+            summary = tf.contrib.summary.histogram(name='activations', tensor=x)
             self.summaries.append(summary)
 
         return x
@@ -1031,7 +1031,7 @@ class Conv2d(Layer):
         x = self.nonlinearity.apply(x=x, update=update)
 
         if 'activations' in self.summary_labels:
-            summary = tf.summary.histogram(name='activations', values=x)
+            summary = tf.contrib.summary.histogram(name='activations', tensor=x)
             self.summaries.append(summary)
 
         return x
@@ -1112,7 +1112,7 @@ class InternalLstm(Layer):
         state = tf.stack(values=(state.c, state.h), axis=1)
 
         if 'activations' in self.summary_labels:
-            summary = tf.summary.histogram(name='activations', values=x)
+            summary = tf.contrib.summary.histogram(name='activations', tensor=x)
             self.summaries.append(summary)
 
         return x, dict(state=state)
@@ -1146,7 +1146,7 @@ class Lstm(Layer):
 
         lstm_cell = tf.contrib.rnn.LSTMCell(num_units=self.size)
         if 'activations' in self.summary_labels:
-            summary = tf.summary.histogram(name='activations', values=x)
+            summary = tf.contrib.summary.histogram(name='activations', tensor=x)
             self.summaries.append(summary)
 
         x, state = tf.nn.dynamic_rnn(
