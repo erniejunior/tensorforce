@@ -409,7 +409,7 @@ class MemoryModel(Model):
 
             # Loss without regularization summary.
             if 'losses' in self.summary_labels:
-                summary = tf.summary.scalar(name='loss-without-regularization', tensor=loss)
+                summary = tf.contrib.summary.scalar(name='loss-without-regularization', tensor=loss)
                 self.summaries.append(summary)
 
             # Regularization losses.
@@ -418,12 +418,12 @@ class MemoryModel(Model):
                 loss += tf.add_n(inputs=list(losses.values()))
                 if 'regularization' in self.summary_labels:
                     for name, loss_val in losses.items():
-                        summary = tf.summary.scalar(name=('regularization/' + name), tensor=loss_val)
+                        summary = tf.contrib.summary.scalar(name=('regularization/' + name), tensor=loss_val)
                         self.summaries.append(summary)
 
             # Total loss summary.
             if 'losses' in self.summary_labels or 'total-loss' in self.summary_labels:
-                summary = tf.summary.scalar(name='total-loss', tensor=loss)
+                summary = tf.contrib.summary.scalar(name='total-loss', tensor=loss)
                 self.summaries.append(summary)
 
             return loss

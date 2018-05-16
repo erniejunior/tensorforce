@@ -236,7 +236,7 @@ class DistributionModel(MemoryModel):
             entropy_per_instance = tf.reduce_mean(input_tensor=tf.concat(values=entropies, axis=1), axis=1)
             entropy = tf.reduce_mean(input_tensor=entropy_per_instance, axis=0)
             if 'entropy' in self.summary_labels:
-                summary = tf.summary.scalar(name='entropy', tensor=entropy)
+                summary = tf.contrib.summary.scalar(name='entropy', tensor=entropy)
                 self.summaries.append(summary)
             losses['entropy'] = -self.entropy_regularization * entropy
 

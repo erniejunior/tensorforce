@@ -244,78 +244,78 @@ class Model(object):
             )
             self.summary_writer.set_as_default()
         # build the graph
-             #tf.contrib.summary.always_record_summaries(), \
         with tf.device(device_name_or_function=self.device), \
+             tf.contrib.summary.always_record_summaries(), \
              tf.variable_scope(name_or_scope=self.scope, reuse=False):
 
-                # Variables and summaries
-                self.variables = dict()
-                self.all_variables = dict()
-                self.registered_variables = set()
-                self.summaries = list()
+            # Variables and summaries
+            self.variables = dict()
+            self.all_variables = dict()
+            self.registered_variables = set()
+            self.summaries = list()
 
-                # Build the graph's placeholders, tf_functions, etc
-                self.setup_placeholders()
-                # Create model's "external" components.
-                # Create tensorflow functions from "tf_"-methods.
-                self.setup_components_and_tf_funcs()
+            # Build the graph's placeholders, tf_functions, etc
+            self.setup_placeholders()
+            # Create model's "external" components.
+            # Create tensorflow functions from "tf_"-methods.
+            self.setup_components_and_tf_funcs()
 
-                # Create core variables (timestep, episode counters, buffers for states/actions/internals).
-                self.fn_initialize()
+            # Create core variables (timestep, episode counters, buffers for states/actions/internals).
+            self.fn_initialize()
 
-                # Input tensors
-                states = util.map_tensors(fn=tf.identity, tensors=self.states_input)
-                internals = util.map_tensors(fn=tf.identity, tensors=self.internals_input)
-                actions = util.map_tensors(fn=tf.identity, tensors=self.actions_input)
-                terminal = tf.identity(input=self.terminal_input)
-                reward = tf.identity(input=self.reward_input)
-                # Probably both deterministic and independent should be the same at some point.
-                deterministic = tf.identity(input=self.deterministic_input)
-                independent = tf.identity(input=self.independent_input)
+            # Input tensors
+            states = util.map_tensors(fn=tf.identity, tensors=self.states_input)
+            internals = util.map_tensors(fn=tf.identity, tensors=self.internals_input)
+            actions = util.map_tensors(fn=tf.identity, tensors=self.actions_input)
+            terminal = tf.identity(input=self.terminal_input)
+            reward = tf.identity(input=self.reward_input)
+            # Probably both deterministic and independent should be the same at some point.
+            deterministic = tf.identity(input=self.deterministic_input)
+            independent = tf.identity(input=self.independent_input)
 
-                states, actions, reward = self.fn_preprocess(states=states, actions=actions, reward=reward)
+            states, actions, reward = self.fn_preprocess(states=states, actions=actions, reward=reward)
 
-                self.create_operations(
-                    states=states,
-                    internals=internals,
-                    actions=actions,
-                    terminal=terminal,
-                    reward=reward,
-                    deterministic=deterministic,
-                    independent=independent
-                )
+            self.create_operations(
+                states=states,
+                internals=internals,
+                actions=actions,
+                terminal=terminal,
+                reward=reward,
+                deterministic=deterministic,
+                independent=independent
+            )
 
-                # Add all summaries specified in summary_labels
-                if any(k in self.summary_labels for k in ['inputs', 'states']):
-                    for name, state in states.items():
-                        summary = tf.contrib.summary.histogram(name=(self.scope + '/inputs/states/' + name), tensor=state)
-                        self.summaries.append(summary)
-                if any(k in self.summary_labels for k in ['inputs', 'actions']):
-                    for name, action in actions.items():
-                        summary = tf.contrib.summary.histogram(name=(self.scope + '/inputs/actions/' + name), tensor=action)
-                        self.summaries.append(summary)
-                if any(k in self.summary_labels for k in ['inputs', 'rewards']):
-                    summary = tf.contrib.summary.histogram(name=(self.scope + '/inputs/rewards'), tensor=reward)
+            # Add all summaries specified in summary_labels
+            if any(k in self.summary_labels for k in ['inputs', 'states']):
+                for name, state in states.items():
+                    summary = tf.contrib.summary.histogram(name=(self.scope + '/inputs/states/' + name), tensor=state)
                     self.summaries.append(summary)
+            if any(k in self.summary_labels for k in ['inputs', 'actions']):
+                for name, action in actions.items():
+                    summary = tf.contrib.summary.histogram(name=(self.scope + '/inputs/actions/' + name), tensor=action)
+                    self.summaries.append(summary)
+            if any(k in self.summary_labels for k in ['inputs', 'rewards']):
+                summary = tf.contrib.summary.histogram(name=(self.scope + '/inputs/rewards'), tensor=reward)
+                self.summaries.append(summary)
 
-        # If we are a global model -> return here.
-        # Saving, syncing, finalizing graph, session is done by local replica model.
-        if self.execution_type == "distributed" and not self.is_local_model:
-            return
+            # If we are a global model -> return here.
+            # Saving, syncing, finalizing graph, session is done by local replica model.
+            if self.execution_type == "distributed" and not self.is_local_model:
+                return
 
-        # Saver/Summary -> Scaffold.
-        self.setup_saver()
-        summaries = self.get_summaries()
-        if len(summaries) > 0:
-            summary_op = tf.summary.merge(inputs=summaries)
-        else:
-            summary_op = None
+            # Saver -> Scaffold.
+            self.setup_saver()
+            # summaries = self.get_summaries()
+            # if len(summaries) > 0:
+            #     summary_op = tf.contrib.summary.merge(inputs=summaries)
+            # else:
+            #     summary_op = None
 
-        self.setup_scaffold(summary_op)
+            self.setup_scaffold()
 
-        # Create necessary hooks for the upcoming session.
-        hooks = self.setup_summary_and_saver_hooks()
-        # We are done constructing: Finalize our graph, create and enter the session.
+            # Create necessary hooks for the upcoming session.
+            hooks = self.setup_summary_and_saver_hooks()
+            # We are done constructing: Finalize our graph, create and enter the session.
         self.setup_session(self.server, hooks, graph_default_context)
 
     def setup_graph(self):
@@ -581,9 +581,9 @@ class Model(object):
             # filename=None
         )
 
-    def setup_scaffold(self, summary_op):
+    def setup_scaffold(self):
         """
-        Creates the tf.train.Scaffold object with the given summary_op and assigns it to self.scaffold.
+        Creates the tf.train.Scaffold object and assigns it to self.scaffold.
         Other fields of the Scaffold are generated automatically.
         """
         if self.execution_type == "single":
@@ -634,7 +634,6 @@ class Model(object):
             ready_op=ready_op,
             ready_for_local_init_op=ready_for_local_init_op,
             local_init_op=local_init_op,
-            summary_op=summary_op,
             saver=self.saver,
             copy_from_scaffold=None
         )
@@ -667,22 +666,10 @@ class Model(object):
         if self.summarizer_spec is None:
             self.summarizer_hook = None
         else:
-            # TensorFlow summary writer object
-            self.summarizer = tf.summary.FileWriter(
-                logdir=self.summarizer_spec['directory'],
-                graph=self.graph,
-                max_queue=10,
-                flush_secs=120,
-                filename_suffix=None
-            )
             self.summarizer_hook = util.UpdateSummarySaverHook(
                 model=self,
                 save_steps=self.summarizer_spec.get('steps'),  # Either one or the other has to be set.
                 save_secs=self.summarizer_spec.get('seconds', None if 'steps' in self.summarizer_spec else 120),
-                output_dir=None,  # None since given via 'summary_writer' argument.
-                summary_writer=self.summarizer,
-                scaffold=self.scaffold,
-                summary_op=None  # None since given via 'scaffold' argument.
             )
             hooks.append(self.summarizer_hook)
 
@@ -788,9 +775,9 @@ class Model(object):
         with tf.device(device_name_or_function=(self.global_model.device if self.global_model else self.device)):
             self.global_timestep = tf.get_variable(
                 name='global-timestep',
-                dtype=util.tf_dtype('int'),
+                dtype=util.tf_dtype(tf.int64),
                 trainable=False,
-                initializer=0,
+                initializer=tf.to_int64(0),
                 collections=['global-timestep', tf.GraphKeys.GLOBAL_STEP]
             )
             self.global_episode = tf.get_variable(
@@ -1045,12 +1032,12 @@ class Model(object):
 
                 # Increment timestep
                 operations.append(tf.assign_add(ref=self.timestep, value=batch_size))
-                operations.append(tf.assign_add(ref=self.global_timestep, value=batch_size))
+                operations.append(tf.assign_add(ref=self.global_timestep, value=tf.to_int64(batch_size)))
 
             with tf.control_dependencies(control_inputs=operations):
                 # Trivial operation to enforce control dependency
                 # TODO why not return no-op?
-                return self.global_timestep + 0
+                return self.global_timestep + tf.to_int64(0)
 
         # Only increment timestep and update buffer if act not independent
         self.timestep_output = tf.cond(

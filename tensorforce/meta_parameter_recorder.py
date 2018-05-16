@@ -256,11 +256,12 @@ class MetaParameterRecorder(object):
             if len(value) == 0:
                 continue
             if isinstance(value, str):
-                ops.append(tf.summary.text(name=key, tensor=tf.convert_to_tensor(str(value))))
+                ops.append(tf.contrib.summary.text(name=key, tensor=tf.convert_to_tensor(str(value))))
             else:
-                ops.append(tf.summary.text(name=key, tensor=tf.as_string(tf.convert_to_tensor(value))))
+                ops.append(tf.contrib.summary.text(name=key, tensor=tf.as_string(tf.convert_to_tensor(value))))
 
+        #TODO: this does not exist for contrib.summary any more?
         with tf.control_dependencies(tf.tuple(ops)):
-            self.summary_merged = tf.summary.merge_all()
+            self.summary_merged = tf.contrib.summary.merge_all()
 
         return self.summary_merged

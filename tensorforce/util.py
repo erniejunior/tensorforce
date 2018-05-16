@@ -18,6 +18,8 @@ import logging
 import numpy as np
 import tensorflow as tf
 from tensorflow.core.util.event_pb2 import SessionLog
+from tensorflow.python.training import training_util
+from tensorflow.python.training.basic_session_run_hooks import SecondOrStepTimer
 
 from tensorforce import TensorForceError
 
@@ -214,41 +216,44 @@ def prepare_kwargs(raw, string_parameter='name'):
     return kwargs
 
 
-class UpdateSummarySaverHook(tf.train.SummarySaverHook):
+class UpdateSummarySaverHook(tf.train.SessionRunHook):
 
-    def __init__(self, model, *args, **kwargs):
-        super(UpdateSummarySaverHook, self).__init__(*args, **kwargs)
+    def __init__(self, model, save_steps=None, save_secs=None):
+        super(UpdateSummarySaverHook, self).__init__()
         self.model = model
+        self.first_run = True
+        self._global_step_tensor = training_util._get_or_create_global_step_read()
+        self._timer = SecondOrStepTimer(every_secs=save_secs,
+                                        every_steps=save_steps)
 
     def before_run(self, run_context):
         self._request_summary = run_context.original_args[1] is not None and \
-            self.model.is_observe and \
-            (self._next_step is None or self._timer.should_trigger_for_step(self._next_step))
-            # run_context.original_args[1].get(self.is_optimizing, False) and \
-        requests = {'global_step': self._global_step_tensor}
+                                self.model.is_observe and \
+                                (self.first_run or self._timer.should_trigger_for_step(self._next_step))
+        # run_context.original_args[1].get(self.is_optimizing, False) and \
+
         if self._request_summary:
-            if self._get_summary_op() is not None:
-                requests['summary'] = self._get_summary_op()
-        return tf.train.SessionRunArgs(requests)
+            return tf.train.SessionRunArgs(dict(summary=tf.contrib.summary.all_summary_ops(),
+                                                global_step=self._global_step_tensor))
+        else:
+            return None
 
     def after_run(self, run_context, run_values):
-        if not self._summary_writer:
-            return
 
-        stale_global_step = run_values.results['global_step']
-        global_step = stale_global_step + 1
-        if self._next_step is None or self._request_summary:
-            global_step = run_context.session.run(self._global_step_tensor)
+        # if self._next_step is None or self._request_summary:
+        #     global_step = run_context.session.run(self._global_step_tensor)
 
-        if self._next_step is None:
-            self._summary_writer.add_session_log(SessionLog(status=SessionLog.START), global_step)
-
-        if 'summary' in run_values.results:
+        if self._request_summary:
+            stale_global_step = run_values.results['global_step']
+            global_step = stale_global_step + 1
             self._timer.update_last_triggered_step(global_step)
-            for summary in run_values.results['summary']:
-                self._summary_writer.add_summary(summary, global_step)
 
-        self._next_step = global_step + 1
+    def after_create_session(self, session, coord):
+        tf.contrib.summary.initialize(session=session)
+
+
+    def begin(self):
+        pass
 
 
 def strip_name_scope(name, base_scope):
