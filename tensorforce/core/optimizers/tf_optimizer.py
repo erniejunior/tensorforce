@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
+import numbers
+
 import tensorflow as tf
 
 from tensorforce.core.optimizers import Optimizer
@@ -46,9 +48,14 @@ class TFOptimizer(Optimizer):
             **kwargs: Arguments passed on to the TensorFlow optimizer constructor as **kwargs.
         """
         self.tf_optimizer_type = optimizer
-        self.tf_optimizer = TFOptimizer.tf_optimizers[optimizer](**kwargs)
+        if 'learning_rate' in kwargs and isinstance(kwargs['learning_rate'], numbers.Number):
+            kwargs['learning_rate'] = tf.Variable(kwargs['learning_rate'], trainable=False, name="learning_rate")
+            super(TFOptimizer, self).__init__(scope=(scope or optimizer), summary_labels=summary_labels)
+            self.variables['learning_rate'] = kwargs['learning_rate']
+        else:
+            super(TFOptimizer, self).__init__(scope=(scope or optimizer), summary_labels=summary_labels)
 
-        super(TFOptimizer, self).__init__(scope=(scope or optimizer), summary_labels=summary_labels)
+        self.tf_optimizer = TFOptimizer.tf_optimizers[optimizer](**kwargs)
 
     def tf_step(self, time, variables, **kwargs):
         """
